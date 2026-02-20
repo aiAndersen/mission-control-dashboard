@@ -1,0 +1,243 @@
+/* Workflow Editor Styles */
+
+/* Agent Node */
+.agent-node {
+  transition: all 0.2s ease;
+}
+
+.agent-node:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 168, 225, 0.15) !important;
+}
+
+.agent-node.selected {
+  box-shadow: 0 4px 12px rgba(0, 168, 225, 0.3) !important;
+}
+
+.agent-node .node-header {
+  user-select: none;
+  cursor: grab;
+}
+
+.agent-node .node-body {
+  user-select: none;
+}
+
+.agent-node .node-footer {
+  user-select: none;
+}
+
+/* Trigger Node */
+.trigger-node {
+  transition: all 0.2s ease;
+  cursor: default;
+}
+
+.trigger-node:hover {
+  transform: scale(1.05);
+}
+
+.trigger-node.selected {
+  box-shadow: 0 6px 16px rgba(5, 150, 105, 0.4) !important;
+}
+
+/* React Flow Overrides */
+.react-flow__node {
+  cursor: pointer;
+}
+
+.react-flow__node.selected {
+  outline: none;
+}
+
+.react-flow__edge-path {
+  stroke-width: 2px;
+  stroke: #00A8E1;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #0096C9;
+  stroke-width: 3px;
+}
+
+.react-flow__edge.animated .react-flow__edge-path {
+  stroke-dasharray: 5;
+  animation: dashdraw 0.5s linear infinite;
+}
+
+@keyframes dashdraw {
+  to {
+    stroke-dashoffset: -10;
+  }
+}
+
+/* Controls */
+.react-flow__controls {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.react-flow__controls-button {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.react-flow__controls-button:hover {
+  background: #f9fafb;
+  border-color: #00A8E1;
+}
+
+.react-flow__controls-button svg {
+  fill: #374151;
+}
+
+/* MiniMap */
+.react-flow__minimap {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Background */
+.react-flow__background {
+  background-color: #f9fafb;
+}
+
+/* Attribution */
+.react-flow__attribution {
+  opacity: 0.5;
+  font-size: 10px;
+}
+
+/* Handle Styles */
+.react-flow__handle {
+  transition: all 0.2s ease;
+}
+
+.react-flow__handle:hover {
+  transform: scale(1.3);
+}
+
+.react-flow__handle-connecting {
+  background: #10b981 !important;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Canvas View Toggle */
+.canvas-view-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.canvas-view-toggle button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.canvas-view-toggle button:hover {
+  background: #f9fafb;
+  border-color: #00A8E1;
+}
+
+.canvas-view-toggle button.active {
+  background: #00A8E1;
+  color: white;
+  border-color: #00A8E1;
+}
+
+.canvas-view-toggle button svg {
+  height: 16px;
+  width: 16px;
+}
+
+/* Empty State */
+.workflow-canvas-empty {
+  height: 600px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 2px dashed #d1d5db;
+}
+
+.workflow-canvas-empty-content {
+  text-align: center;
+  color: #6b7280;
+}
+
+.workflow-canvas-empty-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #374151;
+}
+
+.workflow-canvas-empty-description {
+  font-size: 14px;
+}
+
+/* Loading State */
+.workflow-canvas-loading {
+  height: 600px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.workflow-canvas-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e5e7eb;
+  border-top-color: #00A8E1;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .agent-node {
+    min-width: 280px;
+  }
+
+  .trigger-node {
+    min-width: 200px;
+  }
+
+  .react-flow__controls {
+    bottom: 10px;
+    left: 10px;
+  }
+
+  .react-flow__minimap {
+    bottom: 10px;
+    right: 10px;
+  }
+}

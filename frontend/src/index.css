@@ -1,0 +1,6 @@
+/* Import Mission Control Design System */
+@import './mission-control.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
