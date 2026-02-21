@@ -1,351 +1,244 @@
-# Mission Control Center
+# 🚀 Mission Control Dashboard
 
-**AI Agent orchestration dashboard** for monitoring, configuring, and executing agents across multiple projects.
+**AI-powered workflow orchestration platform** - Describe any task in natural language, get an AI-generated plan, and watch it execute automatically.
 
-- ✅ **Free tier deployment** (Vercel + Supabase)
-- 🎯 Real-time agent status monitoring
-- 🚀 Manual agent execution from UI
-- 📊 Execution history tracking
-- 🏷️ Agent catalog with auto-discovery
+[![Vercel](https://img.shields.io/badge/Deploy-Vercel-black?logo=vercel)](https://vercel.com)
+[![Supabase](https://img.shields.io/badge/Database-Supabase-3ECF8E?logo=supabase)](https://supabase.com)
+[![React](https://img.shields.io/badge/Frontend-React-61DAFB?logo=react)](https://reactjs.org)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
----
-
-## Architecture
-
-- **Frontend**: React 18 + Vite + Tremor (analytics UI)
-- **Backend**: Express.js API + Vercel Functions
-- **Database**: Supabase PostgreSQL (free tier: 500 MB)
-- **Hosting**: Vercel (free tier)
-- **Cost**: **$0/month** 🎉
+**Live Demo:** [https://mission-control-dashboard-coral.vercel.app](https://mission-control-dashboard-coral.vercel.app)
 
 ---
 
-## Quick Start
+## ✨ Features
 
-### 1. Database Setup
+###🤖 CEO Agent Orchestration
+- **Natural Language Input**: Describe any task (e.g., *"Match badge photos to HubSpot attendance records"*)
+- **AI Planning**: GPT-5 generates multi-step workflows with smart agent assignments
+- **Executive Summaries**: High-level overview of what will be accomplished
+- **Voice Input**: Speak your task using Whisper transcription
 
-#### Create Supabase Project (Free)
-1. Go to [supabase.com](https://supabase.com) and create account
-2. Create new project (select free tier)
-3. Wait for database to provision (~2 minutes)
-4. Get your connection details from Settings → Database
+### 📊 Visual Workflow Editor
+- **Canvas View**: React Flow node-based visualization with real-time status updates
+- **List View**: Card-based workflow display with progress bars
+- **Interactive**: Click nodes to expand details, toggle between views
 
-#### Run Schema Migration
+### 🎯 Workflow Management
+- **Save Without Executing**: Review plans and execute later
+- **Execute Saved Workflows**: One-click execution from dashboard
+- **Cancel Running Workflows**: Stop mid-execution with graceful cleanup
+- **Delete Workflows**: Remove completed/failed workflows
+- **Duplicate Workflows**: Clone for testing or reuse (coming soon)
+
+### 📋 Kanban Task Board
+- **Auto-Task Creation**: Tasks automatically created from workflow steps
+- **Real-time Updates**: Tasks update during workflow execution
+- **Status Tracking**: pending → running → completed/failed/blocked
+- **Workflow Linkage**: Each task links to parent workflow
+
+### 🔐 Approval Gates (Human-in-the-Loop)
+- **Step-level Approvals**: Pause workflow for human review
+- **Approval Modal**: Shows context, allows approve/reject with notes
+- **Real-time Notifications**: Instant alerts via WebSocket
+
+### 📈 Real-time Progress Tracking
+- **Live Updates**: WebSocket subscriptions for instant status changes
+- **Progress Bars**: Visual progress (Step 3 of 5 - 60%)
+- **Status Badges**: Color-coded indicators
+- **Execution History**: Complete logs for every workflow
+
+---
+
+## 🚀 Quick Start
+
+See **[CLAUDE.md](CLAUDE.md)** for detailed technical documentation, architecture, and API reference.
+
+### Prerequisites
+- Node.js 18+
+- Supabase account (free tier)
+- Vercel account (free tier)
+- OpenAI API key
+
+### 1. Clone & Install
+
 ```bash
+git clone https://github.com/aiAndersen/mission-control-dashboard.git
 cd mission-control-dashboard
+npm install
+cd frontend && npm install
+```
 
-# Copy your Supabase connection string
+### 2. Database Setup
+
+Create Supabase project at [supabase.com](https://supabase.com), then run migrations:
+
+```bash
 export DATABASE_URL="postgresql://postgres:[password]@db.[project-ref].supabase.co:5432/postgres"
 
-# Install psql if needed (macOS)
-brew install postgresql
-
-# Run schema migration
-psql $DATABASE_URL < database/schema.sql
+# Run all migrations
+psql $DATABASE_URL < database/schema_phase1.sql
+psql $DATABASE_URL < database/schema_phase2.sql
+psql $DATABASE_URL < database/schema_phase3.sql
+psql $DATABASE_URL < database/schema_phase4.sql
+psql $DATABASE_URL < database/schema_phase5_visual_editor.sql
+psql $DATABASE_URL < database/migrations/add_workflow_task_linkage.sql
 ```
 
-You should see:
-```
-CREATE TABLE
-CREATE TABLE
-...
-CREATE INDEX
-COMMENT
-```
-
-### 2. Seed Agents
-
-Discover agents from your marketing content portal:
+### 3. Seed Agents
 
 ```bash
-cd mission-control-dashboard
-
-# Install dependencies
+cd database
 pip3 install psycopg2-binary python-dotenv
-
-# Run discovery
-python3 database/seed_agents.py \
-  --project-name marketing-content-portal \
-  --project-path "/Users/andrewandersen/Desktop/Marketing Content Database/marketing-content-portal"
+python3 seed_core_agents.py
 ```
 
-Expected output:
-```
-============================================================
-Mission Control Agent Discovery
-============================================================
+### 4. Environment Variables
 
-✓ Project registered: marketing-content-portal (uuid...)
+```bash
+# frontend/.env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
 
-Discovering agents in /path/to/portal...
-  ✓ Discovered: deploy-preflight (3 tags)
-  ✓ Discovered: health-monitor (4 tags)
-  ✓ Discovered: diagnose-search (5 tags)
-  ✓ Discovered: import-orchestrator (4 tags)
-  ✓ Discovered: maintenance-orchestrator (4 tags)
-  ✓ Discovered: dedup-content (3 tags)
-
-✓ Agents seeded: 6 inserted, 0 updated
+# backend/.env (for local dev)
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+OPENAI_API_KEY=sk-...
+DATABASE_URL=postgresql://...
 ```
 
-### 3. Frontend Setup
+### 5. Run Locally
 
 ```bash
 cd frontend
-
-# Install dependencies
-npm install
-
-# Create .env file
-cat > .env <<EOF
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key-here
-EOF
-
-# Start dev server
 npm run dev
+# Visit http://localhost:5173
 ```
-
-Visit **http://localhost:5173** - you should see 6 agents! 🎉
-
-### 4. Backend Setup
-
-```bash
-cd backend
-
-# Install dependencies
-npm install
-
-# Create .env file
-cat > .env <<EOF
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_KEY=your-service-role-key-here
-DATABASE_URL=postgresql://...
-MARKETING_PORTAL_PATH=/Users/andrewandersen/Desktop/Marketing Content Database/marketing-content-portal
-EOF
-
-# Start API server
-npm start
-```
-
-API running at **http://localhost:3001**
-
-### 5. Test Execution
-
-Click "Run Now" on any agent in the UI. You should see:
-- Alert: "Agent queued for execution!"
-- Check database: `SELECT * FROM agent_executions;`
-- Status should go: `pending` → `running` → `completed`
 
 ---
 
-## Deployment to Vercel with GitHub Auto-Deploy (Free)
+## 📦 Deploy to Vercel (Free)
 
-### Step 1: GitHub Repository Setup ✅
+### GitHub Auto-Deploy
 
-**Already Done!** Repository is live at:
-- **GitHub**: [https://github.com/aiAndersen/mission-control-dashboard](https://github.com/aiAndersen/mission-control-dashboard)
+1. Push to GitHub
+2. Connect repository at [vercel.com](https://vercel.com)
+3. Add environment variables:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+   - `OPENAI_API_KEY`
+4. Deploy!
 
-### Step 2: Connect Vercel to GitHub
+**Auto-deploy enabled:** Push to `main` → Auto-deployment
 
-1. **Go to Vercel Dashboard**
-   - Visit [https://vercel.com](https://vercel.com)
-   - Login or create account (free tier)
+### Vercel CLI
 
-2. **Import GitHub Repository**
-   - Click **"Add New Project"**
-   - Click **"Import Git Repository"**
-   - Select **"mission-control-dashboard"** from your repositories
-   - If not visible, click **"Adjust GitHub App Permissions"**
-
-3. **Configure Project Settings**
-   - **Framework Preset**: Vite
-   - **Build Command**: `cd frontend && npm install && npm run build`
-   - **Output Directory**: `frontend/dist`
-   - **Install Command**: Leave default
-
-4. **Set Environment Variables**
-   Add these in the Vercel dashboard (Settings → Environment Variables):
-
-   | Variable | Value | Description |
-   |----------|-------|-------------|
-   | `SUPABASE_URL` | `https://your-project.supabase.co` | From Supabase Dashboard |
-   | `SUPABASE_SERVICE_KEY` | `your-service-role-key` | Settings → API → service_role |
-   | `SUPABASE_ANON_KEY` | `your-anon-key` | Settings → API → anon |
-   | `DATABASE_URL` | `postgresql://...` | Settings → Database → Connection String |
-   | `OPENAI_API_KEY` | `sk-...` | From OpenAI Dashboard |
-   | `VITE_SUPABASE_URL` | `https://your-project.supabase.co` | Same as SUPABASE_URL |
-   | `VITE_SUPABASE_ANON_KEY` | `your-anon-key` | Same as SUPABASE_ANON_KEY |
-
-5. **Deploy**
-   - Click **"Deploy"**
-   - Wait 2-3 minutes for build
-   - ✅ Your dashboard will be live at: **https://mission-control-dashboard.vercel.app**
-
-### Step 3: Enable Auto-Deploy (Already Active!)
-
-**Auto-deploy is automatically enabled when you connect GitHub to Vercel:**
-
-- ✅ **Push to `main`** → Triggers production deployment
-- ✅ **Pull requests** → Create preview deployments
-- ✅ **Commits** → Show build status in GitHub
-- ✅ **Rollbacks** → One-click rollback in Vercel dashboard
-
-**How to Deploy Changes:**
-```bash
-# Make changes to your code
-git add .
-git commit -m "feat: add new feature"
-git push origin main
-
-# Vercel automatically:
-# 1. Detects push to main
-# 2. Runs build
-# 3. Deploys to production
-# 4. Updates https://mission-control-dashboard.vercel.app
-```
-
-### Alternative: Manual CLI Deploy
-
-If you prefer CLI deployment:
 ```bash
 npm install -g vercel
 vercel login
 
+# Add env variables (use echo -n to avoid newlines!)
+echo -n "https://your-project.supabase.co" | vercel env add VITE_SUPABASE_URL production
+echo -n "your-anon-key" | vercel env add VITE_SUPABASE_ANON_KEY production
+echo -n "sk-..." | vercel env add OPENAI_API_KEY production
+
 # Deploy
-cd mission-control-dashboard
 vercel --prod
 ```
 
-Your dashboard will be live at: **https://mission-control-dashboard.vercel.app** 🚀
+---
+
+## 🎯 Usage
+
+### Create a Workflow
+
+1. Open dashboard
+2. Type or speak your task: *"Match badge photos to HubSpot attendance records"*
+3. Review AI-generated plan
+4. Choose "Approve & Execute" or "Save for Later"
+
+### Manage Workflows
+
+- **List View**: Card-based display with progress
+- **Canvas View**: Visual node graph (toggle with icon)
+- **Execute**: Click "Execute Now" on saved workflows
+- **Cancel**: Click "Cancel" on running workflows (red button)
+- **Delete**: Click "Delete" on completed/failed workflows (gray button)
+
+### Monitor Tasks
+
+- View Kanban board for all tasks
+- Click task to see execution details
+- Filter by status
 
 ---
 
-## Usage
+## 📐 Architecture
 
-### View All Agents
 ```
-GET http://localhost:3001/api/agents
-```
-
-### Execute Agent
-```bash
-curl -X POST http://localhost:3001/api/agents/{agent-id}/execute \
-  -H "Content-Type: application/json" \
-  -d '{"parameters": {"--limit": 10}}'
+User Browser (React) → Vercel Serverless Functions → Supabase PostgreSQL
+                    ↘  WebSocket Real-time ↗
 ```
 
-### View Executions
-```
-GET http://localhost:3001/api/executions?agent_id={agent-id}
-```
+**Tech Stack:**
+- Frontend: React 18 + Vite + Tremor UI + React Flow
+- Backend: Vercel Serverless Functions (Node.js)
+- Database: Supabase PostgreSQL (free tier)
+- AI: OpenAI GPT-5 Mini/5.2, Whisper
+- Cost: **$0/month** 🎉
 
 ---
 
-## Project Structure
+## 📚 Documentation
 
-```
-mission-control-dashboard/
-├── frontend/                   # React + Vite
-│   ├── src/
-│   │   ├── App.jsx            # Main agent catalog
-│   │   ├── services/
-│   │   │   └── supabase.js    # Supabase client
-│   │   └── index.css
-│   ├── package.json
-│   └── vite.config.js
-├── backend/                    # Express API
-│   ├── server.js              # Main API server
-│   ├── routes/
-│   │   ├── agents.js          # GET /agents, POST /agents/:id/execute
-│   │   └── executions.js      # GET /executions
-│   └── package.json
-├── database/
-│   ├── schema.sql             # Supabase schema
-│   └── seed_agents.py         # Agent discovery script
-├── vercel.json                # Deployment config
-└── README.md
-```
+- **[CLAUDE.md](CLAUDE.md)** - Complete technical docs, architecture, API reference
+- **[README.md](README.md)** - This file (quick start)
+- **Database Schemas** - `database/schema_phase*.sql`
 
 ---
 
-## Free Tier Limits
-
-**Vercel Free:**
-- ✅ 100 GB bandwidth/month
-- ✅ 100 deployments/day
-- ✅ 100 GB-hours serverless functions
-
-**Supabase Free:**
-- ✅ 500 MB database storage
-- ✅ 50k monthly active users
-- ✅ 500k Edge Function invocations
-- ⚠️ Database pauses after 7 days inactivity (auto-wakes)
-
-**Design Decisions for Free Tier:**
-- Execution logs truncated to 1000 chars
-- Old executions archived after 90 days
-- No real-time stdout streaming (Phase 2)
-
----
-
-## Troubleshooting
+## 🔧 Troubleshooting
 
 ### Database Connection Errors
 ```bash
-# Test connection
-psql $DATABASE_URL -c "SELECT NOW();"
+psql $DATABASE_URL -c "SELECT NOW();"  # Test connection
 ```
 
-### Frontend Build Errors
+### API 404 Errors
+Check Vercel function logs:
+```bash
+vercel logs https://your-deployment-url.vercel.app
+```
+
+### Build Errors
 ```bash
 cd frontend
-rm -rf node_modules package-lock.json
-npm install
-npm run build
-```
-
-### Agent Discovery Not Finding Scripts
-```bash
-# Check script paths
-ls -la "/Users/andrewandersen/Desktop/Marketing Content Database/marketing-content-portal/scripts/"
-
-# Run with verbose
-python3 database/seed_agents.py --project-path /correct/path
+rm -rf node_modules package-lock.json dist
+npm install && npm run build
 ```
 
 ---
 
-## Phase 1 Complete! ✅
+## 🚧 Roadmap
 
-**What Works:**
-- ✅ Agent catalog with 6 agents
-- ✅ Manual execution from UI
-- ✅ Execution history tracking
-- ✅ Tag-based organization
-- ✅ Free tier deployment
-
-**Next: Phase 2** (Weeks 4-5)
-- Kanban board with drag-drop
-- Real-time status updates via Supabase Realtime
-- Progress bars for in-progress agents
-- Live stdout viewer
+- [ ] Workflow scheduling (cron, dates)
+- [ ] Webhook triggers
+- [ ] Drag-and-drop editor (add/remove steps)
+- [ ] Live stdout streaming
+- [ ] Agent marketplace
+- [ ] Multi-user auth
+- [ ] Workflow templates
+- [ ] Cost tracking
+- [ ] Notifications (email, Slack)
 
 ---
 
-## Contributing
+## 📄 License
 
-This is an internal tool for managing AI agents across projects. To add a new project:
-
-```bash
-python3 database/seed_agents.py \
-  --project-name my-new-project \
-  --project-path /path/to/project \
-  --github-repo https://github.com/user/repo
-```
+MIT - See [LICENSE](LICENSE)
 
 ---
 
-## License
+**Built with ❤️ for SchooLinks**
 
-MIT
+**Last Updated:** 2026-02-21 | **Version:** 6.0
