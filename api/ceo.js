@@ -15,6 +15,71 @@ export default async function handler(req, res) {
   const path = url.split('?')[0]
 
   try {
+    // POST /api/ceo/plan - Generate plan only (no execution)
+    if (method === 'POST' && path === '/api/ceo/plan') {
+      const { userPrompt } = req.body
+
+      if (!userPrompt) {
+        return res.status(400).json({ error: 'User prompt is required' })
+      }
+
+      console.log(`[CEO API] Generating plan for: "${userPrompt.substring(0, 100)}..."`)
+
+      // Generate plan with CEO Agent
+      const plan = await createPlan(userPrompt)
+
+      return res.status(200).json({ plan })
+    }
+
+    // POST /api/ceo/execute - Create and execute workflow (alias for /create)
+    if (method === 'POST' && path === '/api/ceo/execute') {
+      const { prompt } = req.body
+
+      if (!prompt) {
+        return res.status(400).json({ error: 'Prompt is required' })
+      }
+
+      console.log(`[CEO API] Creating and executing workflow: "${prompt.substring(0, 100)}..."`)
+
+      // Generate plan with CEO Agent
+      const plan = await createPlan(prompt)
+
+      // Create workflow record
+      const { data: workflow, error: workflowError } = await supabase
+        .from('agent_workflows')
+        .insert({
+          name: plan.name,
+          user_prompt: prompt,
+          workflow_plan: plan,
+          status: 'running',
+          total_steps: plan.steps.length,
+          current_step: 0,
+          executive_summary: plan.executive_summary || null
+        })
+        .select()
+        .single()
+
+      if (workflowError) throw workflowError
+
+      // Create Kanban tasks from workflow steps
+      await createTasksFromWorkflow(workflow.id, plan)
+
+      // Execute workflow asynchronously
+      executeWorkflow(workflow.id, plan).catch(err => {
+        console.error('[CEO API] Workflow execution failed:', err)
+      })
+
+      return res.status(201).json({
+        message: 'Workflow created and executing',
+        workflow: {
+          id: workflow.id,
+          name: workflow.name,
+          status: workflow.status,
+          total_steps: workflow.total_steps
+        }
+      })
+    }
+
     // POST /api/ceo/create - Create and execute workflow
     if (method === 'POST' && path === '/api/ceo/create') {
       const { prompt } = req.body
@@ -151,6 +216,42 @@ export default async function handler(req, res) {
         message: 'Workflow execution started',
         workflowId
       })
+    }
+
+    // POST /api/ceo/transcribe - Transcribe audio to text (voice input)
+    if (method === 'POST' && path === '/api/ceo/transcribe') {
+      const { audio } = req.body
+
+      if (!audio) {
+        return res.status(400).json({ error: 'Audio data is required' })
+      }
+
+      try {
+        // Import OpenAI for transcription
+        const { default: OpenAI } = await import('openai')
+        const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+
+        // Convert base64 audio to buffer
+        const audioBuffer = Buffer.from(audio.split(',')[1], 'base64')
+
+        // Create form data for Whisper API
+        const file = new File([audioBuffer], 'audio.webm', { type: 'audio/webm' })
+
+        // Transcribe with Whisper
+        const transcription = await openai.audio.transcriptions.create({
+          file,
+          model: 'whisper-1'
+        })
+
+        return res.status(200).json({
+          text: transcription.text
+        })
+      } catch (transcribeError) {
+        console.error('[CEO API] Transcription error:', transcribeError)
+        return res.status(500).json({
+          error: 'Transcription failed: ' + transcribeError.message
+        })
+      }
     }
 
     // Method not allowed
