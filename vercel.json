@@ -1,6 +1,12 @@
 {
   "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/dist",
-  "installCommand": "echo 'Using buildCommand for install'",
-  "devCommand": "cd frontend && npm run dev"
+  "installCommand": "npm install && cd frontend && npm install && cd ../backend && npm install",
+  "devCommand": "cd frontend && npm run dev",
+  "functions": {
+    "api/**/*.js": {
+      "runtime": "nodejs20.x",
+      "maxDuration": 60
+    }
+  }
 }

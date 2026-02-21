@@ -1,0 +1,17 @@
+{
+  "name": "mission-control-dashboard",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "description": "AI-powered workflow orchestration with CEO Agent",
+  "scripts": {
+    "dev": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "dotenv": "^16.3.1",
+    "openai": "^6.22.0",
+    "pg": "^8.18.0"
+  }
+}

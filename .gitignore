@@ -54,3 +54,4 @@ backend/run-migration.js
 *.db
 *.sqlite
 *.sqlite3
+.vercel
