@@ -20,10 +20,12 @@
     }
   ],
   "env": {
-    "SUPABASE_URL": "@supabase-url",
-    "SUPABASE_SERVICE_KEY": "@supabase-service-key",
-    "SUPABASE_ANON_KEY": "@supabase-anon-key",
-    "DATABASE_URL": "@database-url",
-    "OPENAI_API_KEY": "@openai-api-key"
+    "SUPABASE_URL": "",
+    "SUPABASE_SERVICE_KEY": "",
+    "SUPABASE_ANON_KEY": "",
+    "DATABASE_URL": "",
+    "OPENAI_API_KEY": "",
+    "VITE_SUPABASE_URL": "",
+    "VITE_SUPABASE_ANON_KEY": ""
   }
 }
