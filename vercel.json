@@ -1,18 +1,6 @@
 {
   "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/dist",
-  "installCommand": "npm install --prefix backend && npm install --prefix frontend",
-  "devCommand": "npm run dev --prefix frontend",
-  "framework": null,
-  "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "/api/:path*"
-    }
-  ],
-  "functions": {
-    "api/**/*.js": {
-      "runtime": "nodejs20.x"
-    }
-  }
+  "installCommand": "echo 'Using buildCommand for install'",
+  "devCommand": "cd frontend && npm run dev"
 }
