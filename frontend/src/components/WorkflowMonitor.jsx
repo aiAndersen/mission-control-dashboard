@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Card, Title, Text, Badge, Button, ProgressBar, Callout } from '@tremor/react'
-import { ClockIcon, CheckCircleIcon, XCircleIcon, PlayIcon, PauseIcon, SparklesIcon, Squares2X2Icon, ListBulletIcon } from '@heroicons/react/24/outline'
+import { ClockIcon, CheckCircleIcon, XCircleIcon, PlayIcon, PauseIcon, SparklesIcon, Squares2X2Icon, ListBulletIcon, TrashIcon, StopIcon } from '@heroicons/react/24/outline'
 import { supabase } from '../services/supabase'
 import ApprovalGate from './ApprovalGate'
 import WorkflowCanvas from './workflow-editor/WorkflowCanvas'
@@ -138,6 +138,65 @@ export default function WorkflowMonitor() {
     } catch (err) {
       console.error('Error executing saved workflow:', err)
       alert('Failed to execute workflow: ' + err.message)
+    }
+  }
+
+  const handleCancelWorkflow = async (workflowId) => {
+    if (!confirm('Are you sure you want to cancel this workflow? Running tasks will be stopped.')) {
+      return
+    }
+
+    try {
+      const response = await fetch(
+        `/api/workflows/${workflowId}/cancel`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        }
+      )
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to cancel workflow')
+      }
+
+      // Refresh workflows to show updated status
+      fetchWorkflows()
+    } catch (err) {
+      console.error('Error canceling workflow:', err)
+      alert('Failed to cancel workflow: ' + err.message)
+    }
+  }
+
+  const handleDeleteWorkflow = async (workflowId) => {
+    if (!confirm('Are you sure you want to delete this workflow? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      const response = await fetch(
+        `/api/workflows/${workflowId}`,
+        {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' }
+        }
+      )
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to delete workflow')
+      }
+
+      // Clear selected workflow if it was deleted
+      if (selectedWorkflow?.id === workflowId) {
+        setSelectedWorkflow(null)
+      }
+
+      // Refresh workflows
+      fetchWorkflows()
+    } catch (err) {
+      console.error('Error deleting workflow:', err)
+      alert('Failed to delete workflow: ' + err.message)
     }
   }
 
@@ -342,9 +401,20 @@ export default function WorkflowMonitor() {
                     {(selectedWorkflow || workflows[0]).status.replace('_', ' ').toUpperCase()}
                   </Badge>
                   {(selectedWorkflow || workflows[0]).status === 'running' && (
-                    <Text className="text-sm text-gray-600">
-                      Step {(selectedWorkflow || workflows[0]).current_step || 0} of {(selectedWorkflow || workflows[0]).total_steps}
-                    </Text>
+                    <>
+                      <Text className="text-sm text-gray-600">
+                        Step {(selectedWorkflow || workflows[0]).current_step || 0} of {(selectedWorkflow || workflows[0]).total_steps}
+                      </Text>
+                      <Button
+                        icon={StopIcon}
+                        size="sm"
+                        color="red"
+                        onClick={() => handleCancelWorkflow((selectedWorkflow || workflows[0]).id)}
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        Cancel
+                      </Button>
+                    </>
                   )}
                   {(selectedWorkflow || workflows[0]).status === 'saved' && (
                     <Button
@@ -355,6 +425,20 @@ export default function WorkflowMonitor() {
                       className="bg-emerald-600 hover:bg-emerald-700"
                     >
                       Execute Workflow
+                    </Button>
+                  )}
+                  {((selectedWorkflow || workflows[0]).status === 'saved' ||
+                    (selectedWorkflow || workflows[0]).status === 'completed' ||
+                    (selectedWorkflow || workflows[0]).status === 'failed' ||
+                    (selectedWorkflow || workflows[0]).status === 'cancelled') && (
+                    <Button
+                      icon={TrashIcon}
+                      size="sm"
+                      color="gray"
+                      onClick={() => handleDeleteWorkflow((selectedWorkflow || workflows[0]).id)}
+                      className="bg-gray-500 hover:bg-gray-600 text-white"
+                    >
+                      Delete
                     </Button>
                   )}
                 </div>
@@ -398,6 +482,37 @@ export default function WorkflowMonitor() {
                             className="bg-emerald-600 hover:bg-emerald-700"
                           >
                             Execute Now
+                          </Button>
+                        )}
+                        {workflow.status === 'running' && (
+                          <Button
+                            icon={StopIcon}
+                            size="sm"
+                            color="red"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleCancelWorkflow(workflow.id)
+                            }}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Cancel
+                          </Button>
+                        )}
+                        {(workflow.status === 'saved' ||
+                          workflow.status === 'completed' ||
+                          workflow.status === 'failed' ||
+                          workflow.status === 'cancelled') && (
+                          <Button
+                            icon={TrashIcon}
+                            size="sm"
+                            color="gray"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDeleteWorkflow(workflow.id)
+                            }}
+                            className="bg-gray-500 hover:bg-gray-600 text-white"
+                          >
+                            Delete
                           </Button>
                         )}
                       </div>

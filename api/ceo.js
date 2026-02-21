@@ -228,14 +228,14 @@ export default async function handler(req, res) {
 
       try {
         // Import OpenAI for transcription
-        const { default: OpenAI } = await import('openai')
+        const { default: OpenAI, toFile } = await import('openai')
         const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
         // Convert base64 audio to buffer
         const audioBuffer = Buffer.from(audio.split(',')[1], 'base64')
 
-        // Create form data for Whisper API
-        const file = new File([audioBuffer], 'audio.webm', { type: 'audio/webm' })
+        // Create file object using OpenAI's toFile helper (works in Node.js)
+        const file = await toFile(audioBuffer, 'audio.webm', { type: 'audio/webm' })
 
         // Transcribe with Whisper
         const transcription = await openai.audio.transcriptions.create({

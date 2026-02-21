@@ -20,6 +20,16 @@ export const API_ENDPOINTS = {
     execute: (agentId) => `${API_BASE_URL}/api/agents/${agentId}/execute`
   },
 
+  // Workflow management endpoints
+  workflows: {
+    list: `${API_BASE_URL}/api/workflows`,
+    get: (workflowId) => `${API_BASE_URL}/api/workflows/${workflowId}`,
+    delete: (workflowId) => `${API_BASE_URL}/api/workflows/${workflowId}`,
+    cancel: (workflowId) => `${API_BASE_URL}/api/workflows/${workflowId}/cancel`,
+    duplicate: (workflowId) => `${API_BASE_URL}/api/workflows/${workflowId}/duplicate`,
+    update: (workflowId) => `${API_BASE_URL}/api/workflows/${workflowId}`
+  },
+
   // Execution control endpoints
   executionControl: {
     pause: (executionId) => `${API_BASE_URL}/api/execution-control/pause/${executionId}`,
