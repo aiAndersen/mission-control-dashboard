@@ -139,32 +139,82 @@ Click "Run Now" on any agent in the UI. You should see:
 
 ---
 
-## Deployment to Vercel (Free)
+## Deployment to Vercel with GitHub Auto-Deploy (Free)
 
-### Prerequisites
+### Step 1: GitHub Repository Setup ✅
+
+**Already Done!** Repository is live at:
+- **GitHub**: [https://github.com/aiAndersen/mission-control-dashboard](https://github.com/aiAndersen/mission-control-dashboard)
+
+### Step 2: Connect Vercel to GitHub
+
+1. **Go to Vercel Dashboard**
+   - Visit [https://vercel.com](https://vercel.com)
+   - Login or create account (free tier)
+
+2. **Import GitHub Repository**
+   - Click **"Add New Project"**
+   - Click **"Import Git Repository"**
+   - Select **"mission-control-dashboard"** from your repositories
+   - If not visible, click **"Adjust GitHub App Permissions"**
+
+3. **Configure Project Settings**
+   - **Framework Preset**: Vite
+   - **Build Command**: `cd frontend && npm install && npm run build`
+   - **Output Directory**: `frontend/dist`
+   - **Install Command**: Leave default
+
+4. **Set Environment Variables**
+   Add these in the Vercel dashboard (Settings → Environment Variables):
+
+   | Variable | Value | Description |
+   |----------|-------|-------------|
+   | `SUPABASE_URL` | `https://your-project.supabase.co` | From Supabase Dashboard |
+   | `SUPABASE_SERVICE_KEY` | `your-service-role-key` | Settings → API → service_role |
+   | `SUPABASE_ANON_KEY` | `your-anon-key` | Settings → API → anon |
+   | `DATABASE_URL` | `postgresql://...` | Settings → Database → Connection String |
+   | `OPENAI_API_KEY` | `sk-...` | From OpenAI Dashboard |
+   | `VITE_SUPABASE_URL` | `https://your-project.supabase.co` | Same as SUPABASE_URL |
+   | `VITE_SUPABASE_ANON_KEY` | `your-anon-key` | Same as SUPABASE_ANON_KEY |
+
+5. **Deploy**
+   - Click **"Deploy"**
+   - Wait 2-3 minutes for build
+   - ✅ Your dashboard will be live at: **https://mission-control-dashboard.vercel.app**
+
+### Step 3: Enable Auto-Deploy (Already Active!)
+
+**Auto-deploy is automatically enabled when you connect GitHub to Vercel:**
+
+- ✅ **Push to `main`** → Triggers production deployment
+- ✅ **Pull requests** → Create preview deployments
+- ✅ **Commits** → Show build status in GitHub
+- ✅ **Rollbacks** → One-click rollback in Vercel dashboard
+
+**How to Deploy Changes:**
+```bash
+# Make changes to your code
+git add .
+git commit -m "feat: add new feature"
+git push origin main
+
+# Vercel automatically:
+# 1. Detects push to main
+# 2. Runs build
+# 3. Deploys to production
+# 4. Updates https://mission-control-dashboard.vercel.app
+```
+
+### Alternative: Manual CLI Deploy
+
+If you prefer CLI deployment:
 ```bash
 npm install -g vercel
 vercel login
-```
-
-### Deploy
-```bash
-cd mission-control-dashboard
-
-# Build frontend
-cd frontend && npm run build && cd ..
 
 # Deploy
+cd mission-control-dashboard
 vercel --prod
-```
-
-### Set Environment Variables
-```bash
-vercel env add SUPABASE_URL
-vercel env add SUPABASE_SERVICE_KEY
-vercel env add DATABASE_URL
-vercel env add VITE_SUPABASE_URL
-vercel env add VITE_SUPABASE_ANON_KEY
 ```
 
 Your dashboard will be live at: **https://mission-control-dashboard.vercel.app** 🚀

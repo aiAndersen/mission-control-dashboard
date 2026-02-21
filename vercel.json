@@ -1,13 +1,9 @@
 {
   "version": 2,
+  "buildCommand": "cd frontend && npm install && npm run build",
+  "outputDirectory": "frontend/dist",
+  "framework": "vite",
   "builds": [
-    {
-      "src": "frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    },
     {
       "src": "backend/server.js",
       "use": "@vercel/node"
@@ -20,12 +16,14 @@
     },
     {
       "src": "/(.*)",
-      "dest": "frontend/$1"
+      "dest": "frontend/dist/$1"
     }
   ],
   "env": {
     "SUPABASE_URL": "@supabase-url",
     "SUPABASE_SERVICE_KEY": "@supabase-service-key",
-    "DATABASE_URL": "@database-url"
+    "SUPABASE_ANON_KEY": "@supabase-anon-key",
+    "DATABASE_URL": "@database-url",
+    "OPENAI_API_KEY": "@openai-api-key"
   }
 }
