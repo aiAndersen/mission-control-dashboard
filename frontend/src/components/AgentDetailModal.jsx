@@ -60,7 +60,7 @@ export default function AgentDetailModal({ agent, onClose, onExecute, onOpenChat
   const handleStop = async (executionId) => {
     setStopping(prev => new Set(prev).add(executionId))
     try {
-      const response = await fetch(`http://localhost:3001/api/execution-control/${executionId}/stop`, {
+      const response = await fetch(`/api/execution-control/${executionId}/stop`, {
         method: 'POST',
       })
 

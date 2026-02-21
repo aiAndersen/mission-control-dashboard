@@ -29,7 +29,7 @@ export default function WorkflowCreator() {
     setPlan(null)
 
     try {
-      const response = await fetch('http://localhost:3001/api/ceo/plan', {
+      const response = await fetch('/api/ceo/plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userPrompt })
@@ -54,7 +54,7 @@ export default function WorkflowCreator() {
     setError(null)
 
     try {
-      const response = await fetch('http://localhost:3001/api/ceo/save', {
+      const response = await fetch('/api/ceo/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ plan, userPrompt })
@@ -81,7 +81,7 @@ export default function WorkflowCreator() {
     setError(null)
 
     try {
-      const response = await fetch('http://localhost:3001/api/ceo/execute', {
+      const response = await fetch('/api/ceo/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ plan, userPrompt })
@@ -132,7 +132,7 @@ export default function WorkflowCreator() {
             const formData = new FormData()
             formData.append('audio', audioBlob, 'recording.webm')
 
-            const response = await fetch('http://localhost:3001/api/ceo/transcribe', {
+            const response = await fetch('/api/ceo/transcribe', {
               method: 'POST',
               body: formData
             })

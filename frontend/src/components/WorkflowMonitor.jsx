@@ -121,7 +121,7 @@ export default function WorkflowMonitor() {
   const handleExecuteSavedWorkflow = async (workflowId) => {
     try {
       const response = await fetch(
-        `http://localhost:3001/api/ceo/workflows/${workflowId}/execute`,
+        `/api/ceo/workflows/${workflowId}/execute`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
@@ -154,7 +154,7 @@ export default function WorkflowMonitor() {
   const handleApprovalResponse = async (approvalId, approved, notes) => {
     try {
       const response = await fetch(
-        `http://localhost:3001/api/ceo/workflows/${pendingApproval.workflow_id}/approvals/${approvalId}`,
+        `/api/ceo/workflows/${pendingApproval.workflow_id}/approvals/${approvalId}`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },

@@ -205,7 +205,7 @@ export default function KanbanBoard() {
     setCancelling(prev => new Set(prev).add(taskId))
 
     try {
-      const response = await fetch(`http://localhost:3001/api/execution-control/${taskId}/stop`, {
+      const response = await fetch(`/api/execution-control/${taskId}/stop`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       })
