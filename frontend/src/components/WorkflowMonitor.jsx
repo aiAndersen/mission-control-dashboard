@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Card, Title, Text, Badge, Button, ProgressBar, Callout } from '@tremor/react'
-import { ClockIcon, CheckCircleIcon, XCircleIcon, PlayIcon, PauseIcon, SparklesIcon, Squares2X2Icon, ListBulletIcon, TrashIcon, StopIcon } from '@heroicons/react/24/outline'
+import { ClockIcon, CheckCircleIcon, XCircleIcon, PlayIcon, PauseIcon, SparklesIcon, Squares2X2Icon, ListBulletIcon, TrashIcon, StopIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import { supabase } from '../services/supabase'
 import ApprovalGate from './ApprovalGate'
 import WorkflowCanvas from './workflow-editor/WorkflowCanvas'
+import ExecutionLog from './ExecutionLog'
 import '../styles/workflow-editor.css'
 
 export default function WorkflowMonitor() {
@@ -12,6 +13,7 @@ export default function WorkflowMonitor() {
   const [loading, setLoading] = useState(true)
   const [pendingApproval, setPendingApproval] = useState(null)
   const [viewMode, setViewMode] = useState('list') // 'list' or 'canvas'
+  const [viewingExecutionId, setViewingExecutionId] = useState(null)
 
   useEffect(() => {
     fetchWorkflows()
@@ -299,6 +301,14 @@ export default function WorkflowMonitor() {
         />
       )}
 
+      {/* Execution Detail Modal */}
+      {viewingExecutionId && (
+        <ExecutionLog
+          executionId={viewingExecutionId}
+          onClose={() => setViewingExecutionId(null)}
+        />
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div>
@@ -560,7 +570,9 @@ export default function WorkflowMonitor() {
                           {selectedWorkflow.executions.map((execution) => (
                             <div
                               key={execution.id}
-                              className="flex items-center gap-3 p-4 bg-white rounded-lg border-2 border-gray-200 hover:border-[#00A8E1] transition-colors"
+                              className="flex items-center gap-3 p-4 bg-white rounded-lg border-2 border-gray-200 hover:border-[#00A8E1] transition-colors cursor-pointer"
+                              onClick={() => setViewingExecutionId(execution.id)}
+                              title="Click to view execution details and output"
                             >
                               <Badge color="blue" size="lg" className="px-3">
                                 {execution.step_order}
@@ -574,6 +586,11 @@ export default function WorkflowMonitor() {
                                     Started: {new Date(execution.started_at).toLocaleTimeString()}
                                   </Text>
                                 )}
+                                {execution.error_message && (
+                                  <Text className="text-xs text-red-600 mt-0.5 line-clamp-1">
+                                    {execution.error_message}
+                                  </Text>
+                                )}
                               </div>
                               <Badge color={getStatusColor(execution.status)} size="lg">
                                 {execution.status.toUpperCase()}
@@ -583,9 +600,11 @@ export default function WorkflowMonitor() {
                                   {execution.duration_seconds}s
                                 </Text>
                               )}
+                              <MagnifyingGlassIcon className="h-4 w-4 text-gray-400 flex-shrink-0" title="View logs" />
                             </div>
                           ))}
                         </div>
+                        <Text className="text-xs text-gray-500 mt-2">Click any step to view execution output and logs</Text>
                       </div>
 
                       {/* Workflow Plan */}

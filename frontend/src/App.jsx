@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Card, Title, Text, Badge, Button, Grid, TabGroup, TabList, Tab, TabPanels, TabPanel, TextInput } from '@tremor/react'
-import { Play, RefreshCw, Kanban, LayoutGrid, Info, Sparkles, Search, Plus } from 'lucide-react'
+import { Play, RefreshCw, Kanban, LayoutGrid, Info, Sparkles, Search, Plus, Link } from 'lucide-react'
 import { supabase } from './services/supabase'
 import KanbanBoard from './components/KanbanBoard'
 import ExecutionLog from './components/ExecutionLog'
@@ -8,6 +8,9 @@ import AgentDetailModal from './components/AgentDetailModal'
 import AgentChatModal from './components/AgentChatModal'
 import WorkflowCreator from './components/WorkflowCreator'
 import WorkflowMonitor from './components/WorkflowMonitor'
+import NotificationCenter from './components/NotificationCenter'
+import ApiConnectorModal from './components/ApiConnectorModal'
+import ApprovalGate from './components/ApprovalGate'
 
 function App() {
   const [agents, setAgents] = useState([])
@@ -20,6 +23,8 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedTags, setSelectedTags] = useState([])
   const [sortOption, setSortOption] = useState('name')
+  const [showApiConnector, setShowApiConnector] = useState(false)
+  const [globalPendingApproval, setGlobalPendingApproval] = useState(null)
 
   useEffect(() => {
     fetchAgents()
@@ -143,6 +148,29 @@ function App() {
       return (a.name || '').localeCompare(b.name || '')
     })
 
+  const handleGlobalApprovalResponse = async (approvalId, approved, notes) => {
+    if (!globalPendingApproval) return
+    try {
+      const response = await fetch(
+        `/api/ceo/workflows/${globalPendingApproval.workflow_id}/approvals/${approvalId}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            status: approved ? 'approved' : 'rejected',
+            notes,
+            approved_by: 'user'
+          })
+        }
+      )
+      if (!response.ok) throw new Error('Failed to update approval')
+      setGlobalPendingApproval(null)
+    } catch (err) {
+      console.error('Error updating approval:', err)
+      alert('Failed to update approval: ' + err.message)
+    }
+  }
+
   const allTags = Array.from(new Set(agents.flatMap(a => a.tags || [])))
 
   if (loading) {
@@ -188,6 +216,16 @@ function App() {
 
           {/* Actions */}
           <div className="mc-header-controls">
+            <NotificationCenter onApprovalClick={(approval) => setGlobalPendingApproval(approval)} />
+            <Button
+              size="md"
+              variant="secondary"
+              icon={Link}
+              onClick={() => setShowApiConnector(true)}
+              className="bg-white/15 text-white border border-white/30 hover:bg-white/25 hover:text-white focus:ring-white/60"
+            >
+              Integrations
+            </Button>
             <Button
               size="md"
               variant="secondary"
@@ -388,6 +426,21 @@ function App() {
             setSelectedExecution(executionId)
           }}
         />
+      )}
+
+      {/* Global Approval Gate (triggered via notification center) */}
+      {globalPendingApproval && (
+        <ApprovalGate
+          approval={globalPendingApproval}
+          onApprove={(notes) => handleGlobalApprovalResponse(globalPendingApproval.id, true, notes)}
+          onReject={(notes) => handleGlobalApprovalResponse(globalPendingApproval.id, false, notes)}
+          onClose={() => setGlobalPendingApproval(null)}
+        />
+      )}
+
+      {/* API Connector Modal */}
+      {showApiConnector && (
+        <ApiConnectorModal onClose={() => setShowApiConnector(false)} />
       )}
     </div>
   )
