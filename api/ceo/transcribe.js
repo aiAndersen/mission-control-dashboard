@@ -16,7 +16,7 @@ export default async function handler(req, res) {
 
   try {
     // Trim the key to strip any trailing newline added by `echo` (without -n) in Vercel CLI
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY?.trim() })
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY?.replace(/\s/g, '') })
 
     // Convert base64 data URL to buffer then to File (Node.js 18+)
     const base64Data = audio.includes(',') ? audio.split(',')[1] : audio

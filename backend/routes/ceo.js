@@ -9,7 +9,7 @@ import { supabase } from '../services/supabase.js'
 dotenv.config()
 
 const router = express.Router()
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY?.trim() })
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY?.replace(/\s/g, '') })
 
 // Configure multer for file uploads (in-memory storage)
 const upload = multer({

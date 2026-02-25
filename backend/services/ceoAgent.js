@@ -3,7 +3,7 @@ import { supabase } from './supabase.js'
 import fs from 'fs/promises'
 import path from 'path'
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY?.trim() })
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY?.replace(/\s/g, '') })
 
 // Model routing strategy (intelligent selection per task type)
 const selectModel = (taskType) => {
