@@ -29,7 +29,12 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ text: transcription.text })
   } catch (err) {
-    console.error('[Transcribe] Error:', err)
-    return res.status(500).json({ error: 'Transcription failed: ' + (err.message || 'Unknown error') })
+    // Log full error server-side only — never expose API keys or raw SDK errors to the client
+    console.error('[Transcribe] Error:', err.message)
+    const isAuthError = err.status === 401 || err.message?.includes('API key') || err.message?.includes('header value')
+    const clientMessage = isAuthError
+      ? 'OpenAI API key is not configured correctly. Check Vercel environment variables.'
+      : 'Transcription failed. Please try again.'
+    return res.status(500).json({ error: clientMessage })
   }
 }
