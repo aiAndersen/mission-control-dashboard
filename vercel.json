@@ -4,6 +4,7 @@
   "installCommand": "npm install",
   "devCommand": "cd frontend && npm run dev",
   "rewrites": [
-    { "source": "/api/ceo/:path*", "destination": "/api/ceo" }
+    { "source": "/api/ceo/:path*", "destination": "/api/ceo" },
+    { "source": "/api/integrations/:path*", "destination": "/api/integrations" }
   ]
 }
