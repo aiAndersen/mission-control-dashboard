@@ -1,5 +1,18 @@
-import { createPlan, executeWorkflow, createTasksFromWorkflow } from '../backend/services/ceoAgent.js'
+import ceoAgent from '../backend/services/ceoAgent.js'
 import { supabase } from '../backend/services/supabase.js'
+
+/**
+ * Fetch agents from DB and generate a workflow plan via the CEO Agent.
+ * Returns the raw plan object from ceoAgent.planWorkflow (uses workflow_name, reasoning, steps, etc.)
+ */
+async function createPlan(userPrompt) {
+  const { data: agents } = await supabase
+    .from('agents')
+    .select('id, name, description, tags')
+
+  const availableAgents = agents || []
+  return ceoAgent.planWorkflow(userPrompt, availableAgents)
+}
 
 export default async function handler(req, res) {
   // Enable CORS
@@ -15,9 +28,9 @@ export default async function handler(req, res) {
   const path = url.split('?')[0]
 
   try {
-    // POST /api/ceo/plan - Generate plan only (no execution)
+    // POST /api/ceo/plan - Generate plan only, return to frontend for review
     if (method === 'POST' && path === '/api/ceo/plan') {
-      const { userPrompt } = req.body
+      const { userPrompt } = req.body || {}
 
       if (!userPrompt) {
         return res.status(400).json({ error: 'User prompt is required' })
@@ -25,52 +38,50 @@ export default async function handler(req, res) {
 
       console.log(`[CEO API] Generating plan for: "${userPrompt.substring(0, 100)}..."`)
 
-      // Generate plan with CEO Agent
       const plan = await createPlan(userPrompt)
 
       return res.status(200).json({ plan })
     }
 
-    // POST /api/ceo/execute - Create and execute workflow (alias for /create)
+    // POST /api/ceo/execute - User approved plan, save and execute immediately
+    // Frontend sends { plan, userPrompt } with the pre-reviewed plan
     if (method === 'POST' && path === '/api/ceo/execute') {
-      const { prompt } = req.body
+      const { plan, userPrompt } = req.body || {}
 
-      if (!prompt) {
-        return res.status(400).json({ error: 'Prompt is required' })
+      if (!plan || !userPrompt) {
+        return res.status(400).json({ error: 'Plan and userPrompt are required' })
       }
 
-      console.log(`[CEO API] Creating and executing workflow: "${prompt.substring(0, 100)}..."`)
+      const workflowName = plan.workflow_name || plan.name || 'Untitled Workflow'
+      const summary = plan.executive_summary || plan.reasoning || null
 
-      // Generate plan with CEO Agent
-      const plan = await createPlan(prompt)
+      console.log(`[CEO API] Executing approved workflow: "${workflowName}"`)
 
-      // Create workflow record
       const { data: workflow, error: workflowError } = await supabase
         .from('agent_workflows')
         .insert({
-          name: plan.name,
-          user_prompt: prompt,
+          name: workflowName,
+          user_prompt: userPrompt,
           workflow_plan: plan,
           status: 'running',
-          total_steps: plan.steps.length,
+          total_steps: plan.steps?.length || 0,
           current_step: 0,
-          executive_summary: plan.executive_summary || null
+          executive_summary: summary
         })
         .select()
         .single()
 
       if (workflowError) throw workflowError
 
-      // Create Kanban tasks from workflow steps
-      await createTasksFromWorkflow(workflow.id, plan)
+      await ceoAgent.createTasksFromWorkflow(workflow.id, plan)
 
-      // Execute workflow asynchronously
-      executeWorkflow(workflow.id, plan).catch(err => {
+      ceoAgent.executeWorkflow(workflow.id, plan).catch(err => {
         console.error('[CEO API] Workflow execution failed:', err)
       })
 
       return res.status(201).json({
         message: 'Workflow created and executing',
+        workflowId: workflow.id,
         workflow: {
           id: workflow.id,
           name: workflow.name,
@@ -80,9 +91,55 @@ export default async function handler(req, res) {
       })
     }
 
-    // POST /api/ceo/create - Create and execute workflow
+    // POST /api/ceo/save - User approved plan, save without executing
+    // Frontend sends { plan, userPrompt } with the pre-reviewed plan
+    if (method === 'POST' && path === '/api/ceo/save') {
+      const { plan, userPrompt } = req.body || {}
+
+      if (!plan || !userPrompt) {
+        return res.status(400).json({ error: 'Plan and userPrompt are required' })
+      }
+
+      const workflowName = plan.workflow_name || plan.name || 'Untitled Workflow'
+      const summary = plan.executive_summary || plan.reasoning || null
+
+      console.log(`[CEO API] Saving approved workflow: "${workflowName}"`)
+
+      const { data: workflow, error: workflowError } = await supabase
+        .from('agent_workflows')
+        .insert({
+          name: workflowName,
+          user_prompt: userPrompt,
+          workflow_plan: plan,
+          status: 'saved',
+          total_steps: plan.steps?.length || 0,
+          current_step: 0,
+          executive_summary: summary
+        })
+        .select()
+        .single()
+
+      if (workflowError) throw workflowError
+
+      await ceoAgent.createTasksFromWorkflow(workflow.id, plan)
+
+      console.log(`[CEO API] ✓ Workflow ${workflow.id} saved (not executing)`)
+
+      return res.status(201).json({
+        message: 'Workflow saved successfully',
+        workflowId: workflow.id,
+        workflow: {
+          id: workflow.id,
+          name: workflow.name,
+          status: workflow.status,
+          total_steps: workflow.total_steps
+        }
+      })
+    }
+
+    // POST /api/ceo/create - Generate plan and execute (programmatic / legacy use)
     if (method === 'POST' && path === '/api/ceo/create') {
-      const { prompt } = req.body
+      const { prompt } = req.body || {}
 
       if (!prompt) {
         return res.status(400).json({ error: 'Prompt is required' })
@@ -90,31 +147,29 @@ export default async function handler(req, res) {
 
       console.log(`[CEO API] Creating workflow from prompt: "${prompt.substring(0, 100)}..."`)
 
-      // Generate plan with CEO Agent
       const plan = await createPlan(prompt)
+      const workflowName = plan.workflow_name || plan.name || 'Untitled Workflow'
+      const summary = plan.executive_summary || plan.reasoning || null
 
-      // Create workflow record
       const { data: workflow, error: workflowError } = await supabase
         .from('agent_workflows')
         .insert({
-          name: plan.name,
+          name: workflowName,
           user_prompt: prompt,
           workflow_plan: plan,
           status: 'running',
-          total_steps: plan.steps.length,
+          total_steps: plan.steps?.length || 0,
           current_step: 0,
-          executive_summary: plan.executive_summary || null
+          executive_summary: summary
         })
         .select()
         .single()
 
       if (workflowError) throw workflowError
 
-      // Create Kanban tasks from workflow steps
-      await createTasksFromWorkflow(workflow.id, plan)
+      await ceoAgent.createTasksFromWorkflow(workflow.id, plan)
 
-      // Execute workflow asynchronously (don't block response)
-      executeWorkflow(workflow.id, plan).catch(err => {
+      ceoAgent.executeWorkflow(workflow.id, plan).catch(err => {
         console.error('[CEO API] Workflow execution failed:', err)
       })
 
@@ -122,6 +177,7 @@ export default async function handler(req, res) {
 
       return res.status(201).json({
         message: 'Workflow created and executing',
+        workflowId: workflow.id,
         workflow: {
           id: workflow.id,
           name: workflow.name,
@@ -131,60 +187,12 @@ export default async function handler(req, res) {
       })
     }
 
-    // POST /api/ceo/save - Create workflow without executing
-    if (method === 'POST' && path === '/api/ceo/save') {
-      const { prompt } = req.body
-
-      if (!prompt) {
-        return res.status(400).json({ error: 'Prompt is required' })
-      }
-
-      console.log(`[CEO API] Saving workflow (no execution) from prompt: "${prompt.substring(0, 100)}..."`)
-
-      // Generate plan with CEO Agent
-      const plan = await createPlan(prompt)
-
-      // Create workflow record with 'saved' status
-      const { data: workflow, error: workflowError } = await supabase
-        .from('agent_workflows')
-        .insert({
-          name: plan.name,
-          user_prompt: prompt,
-          workflow_plan: plan,
-          status: 'saved',
-          total_steps: plan.steps.length,
-          current_step: 0,
-          executive_summary: plan.executive_summary || null
-        })
-        .select()
-        .single()
-
-      if (workflowError) throw workflowError
-
-      // Create Kanban tasks from workflow steps
-      await createTasksFromWorkflow(workflow.id, plan)
-
-      console.log(`[CEO API] ✓ Workflow ${workflow.id} saved (not executing)`)
-
-      return res.status(201).json({
-        message: 'Workflow saved successfully',
-        workflow: {
-          id: workflow.id,
-          name: workflow.name,
-          status: workflow.status,
-          total_steps: workflow.total_steps,
-          plan: plan
-        }
-      })
-    }
-
-    // POST /api/ceo/workflows/:id/execute - Execute saved workflow
+    // POST /api/ceo/workflows/:id/execute - Execute a saved workflow
     if (method === 'POST' && path.match(/\/api\/ceo\/workflows\/[^/]+\/execute$/)) {
       const workflowId = path.split('/')[4]
 
       console.log(`[CEO API] Executing saved workflow: ${workflowId}`)
 
-      // Get workflow
       const { data: workflow, error: fetchError } = await supabase
         .from('agent_workflows')
         .select('*')
@@ -199,14 +207,12 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Workflow is not in saved status' })
       }
 
-      // Update status to running
       await supabase
         .from('agent_workflows')
         .update({ status: 'running', current_step: 0 })
         .eq('id', workflowId)
 
-      // Execute workflow asynchronously
-      executeWorkflow(workflowId, workflow.workflow_plan).catch(err => {
+      ceoAgent.executeWorkflow(workflowId, workflow.workflow_plan).catch(err => {
         console.error('[CEO API] Workflow execution failed:', err)
       })
 
@@ -218,43 +224,32 @@ export default async function handler(req, res) {
       })
     }
 
-    // POST /api/ceo/transcribe - Transcribe audio to text (voice input)
-    if (method === 'POST' && path === '/api/ceo/transcribe') {
-      const { audio } = req.body
+    // Approval endpoints: PATCH /api/ceo/workflows/:workflowId/approvals/:approvalId
+    if (method === 'PATCH' && path.match(/\/api\/ceo\/workflows\/[^/]+\/approvals\/[^/]+$/)) {
+      const parts = path.split('/')
+      const workflowId = parts[4]
+      const approvalId = parts[6]
+      const { status, notes } = req.body || {}
 
-      if (!audio) {
-        return res.status(400).json({ error: 'Audio data is required' })
+      if (!['approved', 'rejected'].includes(status)) {
+        return res.status(400).json({ error: 'Status must be approved or rejected' })
       }
 
-      try {
-        // Import OpenAI for transcription
-        const { default: OpenAI, toFile } = await import('openai')
-        const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-
-        // Convert base64 audio to buffer
-        const audioBuffer = Buffer.from(audio.split(',')[1], 'base64')
-
-        // Create file object using OpenAI's toFile helper (works in Node.js)
-        const file = await toFile(audioBuffer, 'audio.webm', { type: 'audio/webm' })
-
-        // Transcribe with Whisper
-        const transcription = await openai.audio.transcriptions.create({
-          file,
-          model: 'whisper-1'
+      const { error: updateError } = await supabase
+        .from('workflow_approvals')
+        .update({
+          status,
+          approval_notes: notes || null,
+          resolved_at: new Date().toISOString()
         })
+        .eq('id', approvalId)
+        .eq('workflow_id', workflowId)
 
-        return res.status(200).json({
-          text: transcription.text
-        })
-      } catch (transcribeError) {
-        console.error('[CEO API] Transcription error:', transcribeError)
-        return res.status(500).json({
-          error: 'Transcription failed: ' + transcribeError.message
-        })
-      }
+      if (updateError) throw updateError
+
+      return res.status(200).json({ message: `Approval ${status}` })
     }
 
-    // Method not allowed
     return res.status(405).json({ error: 'Method not allowed' })
 
   } catch (error) {
