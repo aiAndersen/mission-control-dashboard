@@ -1,8 +1,15 @@
 import { useState, useRef } from 'react'
 import { Card, Title, Text, Button, Badge, Callout } from '@tremor/react'
-import { PlayIcon, SparklesIcon, ClockIcon, CurrencyDollarIcon, ExclamationTriangleIcon, CheckCircleIcon, MicrophoneIcon, BookmarkIcon } from '@heroicons/react/24/outline'
+import { PlayIcon, SparklesIcon, ClockIcon, CurrencyDollarIcon, ExclamationTriangleIcon, CheckCircleIcon, MicrophoneIcon, BookmarkIcon, BeakerIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
 import WorkflowCanvas from './workflow-editor/WorkflowCanvas'
 import '../styles/workflow-editor.css'
+
+const TEST_MODE_CONSTRAINT = `IMPORTANT CONSTRAINTS FOR THIS RUN:
+- This is a TEST / DRY RUN - do NOT make real changes or write to production systems
+- Use mock data or sample data wherever possible
+- Limit any data operations to a maximum of 5 records
+- Prefer read-only operations; flag any write operations as requiring approval
+- Log all actions but do not commit or send anything externally`
 
 export default function WorkflowCreator() {
   const [userPrompt, setUserPrompt] = useState('')
@@ -15,8 +22,19 @@ export default function WorkflowCreator() {
   const [isRecording, setIsRecording] = useState(false)
   const [isTranscribing, setIsTranscribing] = useState(false)
   const [planViewMode, setPlanViewMode] = useState('list') // 'list' or 'canvas'
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [testMode, setTestMode] = useState(false)
+  const [customConstraints, setCustomConstraints] = useState('')
+  const [activeConstraints, setActiveConstraints] = useState(null) // constraints used when plan was generated
   const mediaRecorderRef = useRef(null)
   const audioChunksRef = useRef([])
+
+  // Build the final prompt including any constraints
+  const buildFinalPrompt = () => {
+    const constraints = testMode ? TEST_MODE_CONSTRAINT : customConstraints.trim()
+    if (!constraints) return userPrompt.trim()
+    return `${userPrompt.trim()}\n\n---\n${constraints}`
+  }
 
   const handleGeneratePlan = async () => {
     if (!userPrompt.trim()) {
@@ -28,11 +46,15 @@ export default function WorkflowCreator() {
     setError(null)
     setPlan(null)
 
+    const finalPrompt = buildFinalPrompt()
+    const constraintSummary = testMode ? 'test_mode' : customConstraints.trim() || null
+    setActiveConstraints(constraintSummary)
+
     try {
       const response = await fetch('/api/ceo/plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userPrompt })
+        body: JSON.stringify({ userPrompt: finalPrompt })
       })
 
       const data = await response.json()
@@ -67,8 +89,11 @@ export default function WorkflowCreator() {
       }
 
       setWorkflowId(data.workflowId)
-      setPlan(null) // Clear plan after saving
-      setUserPrompt('') // Clear input
+      setPlan(null)
+      setUserPrompt('')
+      setActiveConstraints(null)
+      setTestMode(false)
+      setCustomConstraints('')
     } catch (err) {
       setError(err.message)
     } finally {
@@ -94,8 +119,11 @@ export default function WorkflowCreator() {
       }
 
       setWorkflowId(data.workflowId)
-      setPlan(null) // Clear plan after execution
-      setUserPrompt('') // Clear input
+      setPlan(null)
+      setUserPrompt('')
+      setActiveConstraints(null)
+      setTestMode(false)
+      setCustomConstraints('')
     } catch (err) {
       setError(err.message)
     } finally {
@@ -252,20 +280,105 @@ export default function WorkflowCreator() {
             </div>
           )}
 
-          <div className="mt-6">
+          {/* Advanced Options */}
+          <div className="mt-4 border-2 border-gray-200 rounded-lg overflow-hidden">
+            <button
+              onClick={() => setShowAdvanced(v => !v)}
+              className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
+            >
+              <div className="flex items-center gap-2">
+                <BeakerIcon className="h-4 w-4 text-gray-600" />
+                <span className="text-sm font-medium text-gray-700">Test & Constraint Options</span>
+                {(testMode || customConstraints.trim()) && (
+                  <Badge color="amber" size="xs">Active</Badge>
+                )}
+              </div>
+              {showAdvanced
+                ? <ChevronUpIcon className="h-4 w-4 text-gray-500" />
+                : <ChevronDownIcon className="h-4 w-4 text-gray-500" />
+              }
+            </button>
+
+            {showAdvanced && (
+              <div className="p-4 space-y-4 bg-white">
+                {/* Test Mode Toggle */}
+                <div className="flex items-start gap-3">
+                  <button
+                    onClick={() => {
+                      setTestMode(v => !v)
+                      if (!testMode) setCustomConstraints('')
+                    }}
+                    className={`relative flex-shrink-0 w-11 h-6 rounded-full transition-colors focus:outline-none ${
+                      testMode ? 'bg-amber-500' : 'bg-gray-300'
+                    }`}
+                  >
+                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                      testMode ? 'translate-x-5' : 'translate-x-0'
+                    }`} />
+                  </button>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Text className="font-semibold text-gray-900 text-sm">Test / Dry Run Mode</Text>
+                      {testMode && <Badge color="amber" size="xs">ON</Badge>}
+                    </div>
+                    <Text className="text-xs text-gray-600 mt-0.5">
+                      CEO Agent will plan with mock data, limit to 5 records, flag all write operations for approval, and avoid external API calls.
+                    </Text>
+                  </div>
+                </div>
+
+                {/* Custom Constraints */}
+                {!testMode && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                      Custom Constraints <span className="text-gray-400 font-normal">(optional)</span>
+                    </label>
+                    <textarea
+                      value={customConstraints}
+                      onChange={(e) => setCustomConstraints(e.target.value)}
+                      placeholder={`Examples:\n- Limit to records created after Jan 2025\n- Only process contacts from the US region\n- Use staging environment, not production\n- Skip any steps that touch financial data`}
+                      className="w-full h-28 px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 resize-none text-sm text-gray-900 placeholder-gray-400"
+                      disabled={isPlanning}
+                    />
+                    <Text className="text-xs text-gray-500 mt-1">
+                      These constraints are passed to the CEO Agent and shape how the plan is built.
+                    </Text>
+                  </div>
+                )}
+
+                {testMode && (
+                  <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                    <Text className="text-xs text-amber-800 font-medium">Test mode constraints applied:</Text>
+                    <ul className="mt-1 space-y-0.5">
+                      {TEST_MODE_CONSTRAINT.split('\n').filter(l => l.startsWith('-')).map((line, i) => (
+                        <li key={i} className="text-xs text-amber-700 flex gap-1.5">
+                          <span>•</span><span>{line.replace('- ', '')}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4">
             <Button
               onClick={handleGeneratePlan}
               loading={isPlanning}
               disabled={!userPrompt.trim() || isExecuting}
-              icon={SparklesIcon}
-              color="blue"
+              icon={testMode ? BeakerIcon : SparklesIcon}
+              color={testMode ? 'amber' : 'blue'}
               size="xl"
-              className="w-full text-lg py-4 bg-[#00A8E1] hover:bg-[#0096C9]"
+              className={`w-full text-lg py-4 ${testMode ? 'bg-amber-500 hover:bg-amber-600' : 'bg-[#00A8E1] hover:bg-[#0096C9]'}`}
             >
-              {isPlanning ? 'CEO Agent Planning...' : 'Generate Plan'}
+              {isPlanning ? 'CEO Agent Planning...' : testMode ? 'Generate Test Plan' : 'Generate Plan'}
             </Button>
             <Text className="text-center text-gray-600 text-sm mt-3">
-              The CEO Agent will create a detailed execution plan for your review
+              {testMode
+                ? 'Plan will be constrained to a safe test run — no real changes will execute'
+                : 'The CEO Agent will create a detailed execution plan for your review'
+              }
             </Text>
           </div>
         </Card>
@@ -275,14 +388,34 @@ export default function WorkflowCreator() {
       {plan && (
         <div className="space-y-6 animate-fade-in">
           {/* Approval Header */}
-          <Card className="shadow-lg border-2 border-amber-500 bg-gradient-to-r from-amber-50 to-orange-50">
-            <div className="flex items-center gap-3 mb-3">
-              <ExclamationTriangleIcon className="h-8 w-8 text-amber-600" />
+          <Card className={`shadow-lg border-2 bg-gradient-to-r ${activeConstraints === 'test_mode' ? 'border-amber-500 from-amber-50 to-orange-50' : 'border-amber-500 from-amber-50 to-orange-50'}`}>
+            <div className="flex items-center gap-3 mb-3 flex-wrap">
+              {activeConstraints === 'test_mode'
+                ? <BeakerIcon className="h-8 w-8 text-amber-600" />
+                : <ExclamationTriangleIcon className="h-8 w-8 text-amber-600" />
+              }
               <Title className="text-2xl text-gray-900">Review & Approve Plan</Title>
+              {activeConstraints === 'test_mode' && (
+                <Badge color="amber" size="lg" className="text-sm px-3 py-1">TEST MODE</Badge>
+              )}
+              {activeConstraints && activeConstraints !== 'test_mode' && (
+                <Badge color="orange" size="lg" className="text-sm px-3 py-1">CONSTRAINED</Badge>
+              )}
             </div>
             <Text className="text-gray-800 text-base leading-relaxed">
-              The CEO Agent has created an execution plan. Please review the steps below carefully and approve to proceed.
+              {activeConstraints === 'test_mode'
+                ? 'This is a test plan — steps are constrained to mock data and safe operations. Review before approving a real run.'
+                : activeConstraints
+                ? 'This plan was generated with custom constraints. Review carefully before approving.'
+                : 'The CEO Agent has created an execution plan. Please review the steps below carefully and approve to proceed.'
+              }
             </Text>
+            {activeConstraints && activeConstraints !== 'test_mode' && (
+              <details className="mt-3 cursor-pointer">
+                <summary className="text-xs font-medium text-gray-600 hover:text-gray-800">View applied constraints</summary>
+                <pre className="mt-1 text-xs text-gray-700 bg-orange-50 rounded p-2 whitespace-pre-wrap">{activeConstraints}</pre>
+              </details>
+            )}
           </Card>
 
           {/* Plan Overview */}
