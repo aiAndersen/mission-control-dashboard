@@ -253,9 +253,11 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
 
   } catch (error) {
-    console.error('[CEO API] Error:', error)
+    // Log full error server-side only — never expose raw SDK errors (may contain API keys) to client
+    console.error('[CEO API] Error:', error.message)
+    const isAuthError = error.status === 401 || error.message?.includes('API key') || error.message?.includes('header value')
     return res.status(500).json({
-      error: error.message || 'Internal server error'
+      error: isAuthError ? 'AI service configuration error. Contact support.' : 'Internal server error'
     })
   }
 }
