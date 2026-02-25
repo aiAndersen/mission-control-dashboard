@@ -129,12 +129,19 @@ export default function WorkflowCreator() {
 
           try {
             const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
-            const formData = new FormData()
-            formData.append('audio', audioBlob, 'recording.webm')
+
+            // Convert blob to base64 data URL (backend expects JSON with base64 audio)
+            const base64Audio = await new Promise((resolve, reject) => {
+              const reader = new FileReader()
+              reader.onloadend = () => resolve(reader.result)
+              reader.onerror = reject
+              reader.readAsDataURL(audioBlob)
+            })
 
             const response = await fetch('/api/ceo/transcribe', {
               method: 'POST',
-              body: formData
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ audio: base64Audio })
             })
 
             const data = await response.json()
